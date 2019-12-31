@@ -133,6 +133,7 @@ class ChunkStorage {
 
 			$chunkData .= $data['heightMap'] . $data['biomeColor'] . Binary::writeLInt(0) . implode('', $data['tiles']);
 		}
+
 		$subClientId = $data['subClientId'];
 		$pk = new FullChunkDataPacket();
 		$pk->chunkX = $data['chunkX'];
