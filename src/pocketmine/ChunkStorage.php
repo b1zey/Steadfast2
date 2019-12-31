@@ -62,12 +62,13 @@ class ChunkStorage {
 				if ($sections['empty'] == true) {
                     if ($protocol >= Info::PROTOCOL_120) {
                         $blockData = "\x00" . str_repeat("\x00", 6144);
-                        $chunkData .= $blockData;
                     } else {
-                        $chunkData .= "\x00" . str_repeat("\x00", 10240);
+                        $blockData = "\x00" . str_repeat("\x00", 10240);
                     }
+                    $chunkData .= $blockData;
 				} else {
-                    if ($protocol >= Info::PROTOCOL_120) {
+					if ($protocol >= Info::PROTOCOL_120)
+                    {
                         if (isset($data['isSorted']) && $data['isSorted'] == true) {
                             $blockData = "\x00" . $sections['blocks'] . $sections['data'];
                         } else {
@@ -91,7 +92,6 @@ class ChunkStorage {
 			}
 			$chunkData .= $data['chunk']['biomeColor'] . Binary::writeByte(0) . Binary::writeSignedVarInt(0) . implode('', $data['tiles']);
 		} else {
-
             if ($protocol >= Info::PROTOCOL_120) {
                 $blockIdArray = $data['blocks'];
                 $blockDataArray = $data['data'];

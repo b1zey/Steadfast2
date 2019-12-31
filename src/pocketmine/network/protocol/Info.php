@@ -113,8 +113,9 @@ interface Info{
 	const ADD_PLAYER_PACKET = 0x0c;
 	const ADD_ENTITY_PACKET = 0x0d;
 	const REMOVE_ENTITY_PACKET = 0x0e;
-	const ADD_ITEM_ENTITY_PACKET = 0x0f;
-	// 0x10 - doesn't exists in client
+    const REMOVE_BLOCK_PACKET = 0x16;
+    const ADD_ITEM_ENTITY_PACKET = 0x0f;
+    // 0x10 - doesn't exists in client
 	const TAKE_ITEM_ENTITY_PACKET = 0x11;
 	const MOVE_ENTITY_PACKET = 0x12;
 	const MOVE_PLAYER_PACKET = 0x13;
@@ -132,6 +133,7 @@ interface Info{
 	const MOB_EQUIPMENT_PACKET = 0x1f;
 	const MOB_ARMOR_EQUIPMENT_PACKET = 0x20;
 	const INTERACT_PACKET = 0x21;
+    const USE_ITEM_PACKET = 0x23;
 	const BLOCK_PICK_REQUEST_PACKET = 0x22;					// NEW
 	const ENTITY_PICK_REQUEST_PACKET = 0x23;				// NEW
 	const PLAYER_ACTION_PACKET = 0x24;
@@ -144,7 +146,11 @@ interface Info{
 	const SET_SPAWN_POSITION_PACKET = 0x2b;
 	const ANIMATE_PACKET = 0x2c;
 	const RESPAWN_PACKET = 0x2d;
+    const DROP_ITEM_PACKET = 0x2e;
 	const CONTAINER_OPEN_PACKET = 0x2e;
+    const CONTAINER_SET_SLOT_PACKET = 0x32;
+    const CONTAINER_SET_CONTENT_PACKET = 0x34;
+    const COMMAND_STEP_PACKET = 0x4e;
 	const CONTAINER_CLOSE_PACKET = 0x2f;
 	const PLAYER_HOTBAR_PACKET = 0x30;						// NEW
 	const INVENTORY_CONTENT_PACKET = 0x31;					// NEW
