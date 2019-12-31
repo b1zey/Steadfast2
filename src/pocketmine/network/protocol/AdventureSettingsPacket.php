@@ -80,16 +80,20 @@ class AdventureSettingsPacket extends PEPacket{
 		$this->reset($playerProtocol);
 		$this->putVarInt($this->flags);
 		$this->putVarInt($this->commandPermissions);
-		$this->putVarInt($this->actionPermissions);
-		$this->putVarInt($this->permissionLevel);
-		$this->putVarInt($this->customStoredPermissions);
-		// we should put eid as long but in signed varint format
-		// maybe i'm wrong but it works
-		if ($this->userId & 1) { // userId is odd
-			$this->putLLong(-1 * (($this->userId + 1) >> 1));
-		} else { // userId is even
-			$this->putLLong($this->userId >> 1);
-		}
+
+		if ($playerProtocol >= Info::PROTOCOL_120)
+        {
+            $this->putVarInt($this->actionPermissions);
+            $this->putVarInt($this->permissionLevel);
+            $this->putVarInt($this->customStoredPermissions);
+            // we should put eid as long but in signed varint format
+            // maybe i'm wrong but it works
+            if ($this->userId & 1) { // userId is odd
+                $this->putLLong(-1 * (($this->userId + 1) >> 1));
+            } else { // userId is even
+                $this->putLLong($this->userId >> 1);
+            }
+        }
 	}
 
 }

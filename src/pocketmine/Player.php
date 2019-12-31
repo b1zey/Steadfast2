@@ -278,7 +278,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer {
 	protected $iusername = '';
 	protected $displayName = '';
 	protected $startAction = -1;
-	public $protocol = ProtocolInfo::PROTOCOL_120;
+	public $protocol = ProtocolInfo::PROTOCOL_110;
 	/** @var Vector3 */
 	protected $sleeping = null;
 	protected $clientID = null;
@@ -972,6 +972,11 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer {
 		}
 		
 		switch($packet->pname()){
+            case 'SHOW_STORE_OFFER_PACKET':
+                if ($this->protocol < ProtocolInfo::PROTOCOL_120) {
+                    return;
+                }
+                break;
 			case 'INVENTORY_CONTENT_PACKET':
 				$queueKey = $packet->pname() . $packet->inventoryID;
 				unset($this->inventoryPacketQueue[$queueKey]);
@@ -1707,6 +1712,34 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer {
 		}
 	}
 
+    public function setNameTag($name){
+        if ($this->getDataProperty(self::DATA_NAMETAG) != $name) {
+            $this->dataProperties[self::DATA_NAMETAG] = [self::DATA_TYPE_STRING, $name];
+            $players = $this->getViewers();
+            $viewers200 = [];
+            $viewers = [];
+            foreach ($players as $viewer) {
+                if ($viewer->getPlayerProtocol() >= ProtocolInfo::PROTOCOL_200) {
+                    $viewers200[] = $viewer;
+                } else {
+                    $viewers[] = $viewer;
+                }
+            }
+            if (!empty($viewers)) {
+                $pk = new SetEntityDataPacket();
+                $pk->eid = $this->id;
+                $pk->metadata = [self::DATA_NAMETAG => self::DATA_TYPE_STRING, $name];
+                Server::broadcastPacket($viewers, $pk);
+            }
+            if (!empty($viewers200)) {
+                foreach ($viewers200 as $viewer) {
+                    $this->despawnFrom($viewer);
+                    $this->spawnTo($viewer);
+                }
+            }
+        }
+    }
+
 	/**
 	 * Handles a Minecraft packet
 	 * TODO: Separate all of this in handlers
@@ -2079,8 +2112,19 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer {
 						if ($this->currentWindow instanceof EnchantInventory) {
 							$enchantLevel = abs($packet->theThing);
 							if ($this->expLevel >= $enchantLevel) {
-								$this->removeExperience(0, $enchantLevel);					
+                                $this->removeExperience(0, $enchantLevel);
+                                if ($this->protocol >= ProtocolInfo::PROTOCOL_120) {
+                                    $this->currentWindow->setEnchantingLevel($enchantLevel);
+                                    return;
+                                }
 								$this->currentWindow->setEnchantingLevel($enchantLevel);
+                                $items = $this->inventory->getContents();
+                                foreach ($items as $slot => $item) {
+                                    if ($item->getId() === Item::DYE && $item->getDamage() === 4 && $item->getCount() >= $enchantLevel) {
+
+                                        break 2;
+                                    }
+                                }
 							} else {
 								$this->currentWindow->setItem(0, Item::get(Item::AIR));
 								$this->currentWindow->setEnchantingLevel(0);
@@ -4805,11 +4849,13 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer {
 	}
 
 	protected function sendServerSettingsModal($modalWindow) {
-		$pk = new ServerSettingsResponsetPacket();
-		$pk->formId = $this->lastModalId++;
-		$pk->data = $modalWindow->toJSON();
-		$this->dataPacket($pk);
-		$this->activeModalWindows[$pk->formId] = $modalWindow;
+        if ($this->protocol >= Info::PROTOCOL_120) {
+            $pk = new ServerSettingsResponsetPacket();
+            $pk->formId = $this->lastModalId++;
+            $pk->data = $modalWindow->toJSON();
+            $this->dataPacket($pk);
+            $this->activeModalWindows[$pk->formId] = $modalWindow;
+        }
 	}
 
 	protected function sendServerSettings() {
@@ -4817,22 +4863,61 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer {
 	}
 
 	public function needEncrypt() {
-		return true;
+        return $this->protocol >= Info::PROTOCOL_120;
 	}
 
 	public function updatePlayerSkin($oldSkinName, $newSkinName) {
 		if ($this->playerListIsSent) {
-			$pk = new PlayerSkinPacket();
-			$pk->uuid = $this->getUniqueId();
-			$pk->newSkinId = $this->skinName;
-			$pk->newSkinName = $newSkinName;
-			$pk->oldSkinName = $oldSkinName;
-			$pk->newSkinByteData = $this->skin;
-			$pk->newCapeByteData = $this->capeData;
-			$pk->newSkinGeometryName = $this->skinGeometryName;
-			$pk->newSkinGeometryData = $this->skinGeometryData;
-			$pk->additionalSkinData = $this->additionalSkinData;
-			$this->server->batchPackets($this->server->getOnlinePlayers(), [$pk]);
+            $pk = new RemoveEntityPacket();
+            $pk->eid = $this->getId();
+            $pk2 = new PlayerListPacket();
+            $pk2->type = PlayerListPacket::TYPE_REMOVE;
+            $pk2->entries[] = [$this->getUniqueId()];
+            $pk3 = new PlayerListPacket();
+            $pk3->type = PlayerListPacket::TYPE_ADD;
+            $pk3->entries[] = [$this->getUniqueId(), $this->getId(), $this->getName(), $this->skinName, $this->skin, $this->capeData, $this->skinGeometryName, $this->skinGeometryData];
+            $pk4 = new AddPlayerPacket();
+            $pk4->uuid = $this->getUniqueId();
+            $pk4->username = $this->getName();
+            $pk4->eid = $this->getId();
+            $pk4->x = $this->x;
+            $pk4->y = $this->y;
+            $pk4->z = $this->z;
+            $pk4->speedX = $this->motionX;
+            $pk4->speedY = $this->motionY;
+            $pk4->speedZ = $this->motionZ;
+            $pk4->yaw = $this->yaw;
+            $pk4->pitch = $this->pitch;
+            $pk4->metadata = $this->dataProperties;
+
+            $pk120 = new PlayerSkinPacket();
+            $pk120->uuid = $this->getUniqueId();
+            $pk120->newSkinId = $this->skinName;
+            $pk120->newSkinName = $newSkinName;
+            $pk120->oldSkinName = $oldSkinName;
+            $pk120->newSkinByteData = $this->skin;
+            $pk120->newCapeByteData = $this->capeData;
+            $pk120->newSkinGeometryName = $this->skinGeometryName;
+            $pk120->newSkinGeometryData = $this->skinGeometryData;
+
+            $viewers120 = [];
+            $oldViewers = [];
+            $recipients = $this->server->getOnlinePlayers();
+            // $recipients[] = $this; // current player is already in the array
+            foreach ($recipients as $viewer) {
+                if ($viewer->getPlayerProtocol() >= ProtocolInfo::PROTOCOL_120) {
+                    $viewers120[] = $viewer;
+                } else {
+                    $oldViewers[] = $viewer;
+                }
+            }
+
+            if (!empty($viewers120)) {
+                $this->server->batchPackets($viewers120, [$pk120]);
+            }
+            if (!empty($oldViewers)) {
+                $this->server->batchPackets($oldViewers, [$pk, $pk2, $pk3, $pk4]);
+            }
 		}
 	}
 

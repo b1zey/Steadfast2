@@ -83,6 +83,9 @@ class LoginPacket extends PEPacket {
 			$this->isValidProtocol = false;
 			return;
 		}
+        if ($this->protocol1 < Info::PROTOCOL_120) {
+            $this->getByte();
+        }
 		$data = $this->getString();
 		if (ord($data{0}) != 120 || (($decodedData = @zlib_decode($data)) === false)) {
 			$body = $data;

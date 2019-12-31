@@ -8,7 +8,24 @@ use pocketmine\network\protocol\Info;
 class MetadataConvertor {
 
 	private static $initialMeta = [];
-	
+
+    private static $diffEntityFlags110 = [
+        'DATA_FLAG_RESTING_BAT' => 22,
+        'DATA_FLAG_ANIMAL_SIT' => 23,
+        'DATA_FLAG_ANGRY_WOLF' => 24,
+        'DATA_FLAG_INTERESTED' => 25,
+        'DATA_FLAG_ANGRY_BLAZE' => 26,
+        'DATA_FLAG_TAME_WOLF' => 27,
+        'DATA_FLAG_LEASHED' => 28,
+        'DATA_FLAG_SHAVED_SHIP' => 29,
+        'DATA_FLAG_FALL_FLYING' => 30,
+        'DATA_FLAG_ELDER_GUARDIAN' => 31,
+        'DATA_FLAG_MOVING' => 32,
+        'DATA_FLAG_NOT_IN_WATER' => 33,
+        'DATA_FLAG_CHESTED_MOUNT' => 34,
+        'DATA_FLAG_STACKABLE' => 35,
+    ];
+
 	private static $diffEntityFlags120 = [
 		'DATA_FLAG_RESTING_BAT' => 22,
 		'DATA_FLAG_ANIMAL_SIT' => 23,
@@ -67,10 +84,15 @@ class MetadataConvertor {
 		'DATA_FLAG_AFFECTED_BY_GRAVITY' => 48,
 		'DATA_FLAG_FIRE_IMMUNE' => 49,
 	];
+    private static $entityFlags110 = [];
 	private static $entityFlags120 = [];
 	private static $entityFlags221 = [];
 	private static $entityFlags290 = [];
-	
+
+    private static $diffEntityMetaIds110 = [
+        'DATA_MAX_AIR' => 43,
+    ];
+
 	private static $diffEntityMetaIds120 = [
 		'DATA_MAX_AIR' => 43,
 	];
@@ -142,7 +164,8 @@ class MetadataConvertor {
 		'DATA_SEAT_RIDER_OFFSET' => 56,
 		'DATA_POSE_INDEX' => 78,
 	];
-	
+
+    private static $entityMetaIds110 = [];
 	private static $entityMetaIds120 = [];
 	private static $entityMetaIds220 = [];
 	private static $entityMetaIds221 = [];
@@ -153,6 +176,12 @@ class MetadataConvertor {
 	public static function init() {
 		$oClass = new \ReflectionClass('pocketmine\entity\Entity');
 		self::$initialMeta = $oClass->getConstants();
+
+        foreach (self::$diffEntityFlags110 as $key => $value) {
+            if (isset(self::$initialMeta[$key])) {
+                self::$entityFlags110[self::$initialMeta[$key]] = $value;
+            }
+        }
 
 		foreach (self::$diffEntityFlags120 as $key => $value) {
 			if (isset(self::$initialMeta[$key])) {
@@ -171,7 +200,13 @@ class MetadataConvertor {
 				self::$entityFlags290[self::$initialMeta[$key]] = $value;
 			}
 		}
-		
+
+        foreach (self::$diffEntityMetaIds110 as $key => $value) {
+            if (isset(self::$initialMeta[$key])) {
+                self::$entityMetaIds110[self::$initialMeta[$key]] = $value;
+            }
+        }
+
 		foreach (self::$diffEntityMetaIds120 as $key => $value) {
 			if (isset(self::$initialMeta[$key])) {
 				self::$entityMetaIds120[self::$initialMeta[$key]] = $value;
@@ -217,6 +252,9 @@ class MetadataConvertor {
 
 	private static function updateMetaIds($meta, $protocol) {
 		switch ($protocol) {
+            case Info::PROTOCOL_110:
+                $protocolMeta = self::$entityMetaIds110;
+                break;
 			case Info::PROTOCOL_389:
 			case Info::PROTOCOL_386:
 			case Info::PROTOCOL_385:
@@ -296,6 +334,10 @@ class MetadataConvertor {
 				$newflags = 1 << 19; //DATA_FLAG_CAN_CLIMBING
 				$protocolFlags = self::$entityFlags290;
 				break;
+            case Info::PROTOCOL_110:
+                $newflags = 1 << 19; //DATA_FLAG_CAN_CLIMBING
+                $protocolFlags = self::$entityFlags110;
+                break;
 			case Info::PROTOCOL_282:
 			case Info::PROTOCOL_280:
 			case Info::PROTOCOL_274:

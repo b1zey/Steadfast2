@@ -41,13 +41,21 @@ class AnimatePacket extends PEPacket{
 
 	public function decode($playerProtocol){
 		$this->getHeader($playerProtocol);
-		$this->action = $this->getSignedVarInt();
+        if ($playerProtocol >= Info::PROTOCOL_120) {
+            $this->action = $this->getSignedVarInt();
+        } else {
+            $this->action = $this->getVarInt();
+        }
 		$this->eid = $this->getVarInt();
 	}
 
 	public function encode($playerProtocol){
 		$this->reset($playerProtocol);
-		$this->putSignedVarInt($this->action);
+        if ($playerProtocol >= Info::PROTOCOL_120) {
+            $this->putSignedVarInt($this->action);
+        } else {
+            $this->putVarInt($this->action);
+        }
 		$this->putVarInt($this->eid);
 		switch ($this->action) {
 			case self::ACTION_ROW_RIGHT:

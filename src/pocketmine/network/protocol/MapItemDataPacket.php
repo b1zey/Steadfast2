@@ -30,7 +30,9 @@ class MapItemDataPacket extends PEPacket {
 		$this->reset($playerProtocol);
 		$this->putSignedVarInt($this->mapId);
 		$this->putVarInt($this->flags);
-		$this->putByte(0); // dimension
+        if ($playerProtocol >= Info::PROTOCOL_120) {
+            $this->putByte(0); // dimension
+        }
 		if ($playerProtocol >= Info::PROTOCOL_351) {
 			$this->putByte($this->isLockedMap);
 		}
@@ -41,7 +43,9 @@ class MapItemDataPacket extends PEPacket {
 				$this->putSignedVarInt($this->height);
 				$this->putSignedVarInt(0);
 				$this->putSignedVarInt(0);
-				$this->putVarInt($this->width * $this->height);
+                if ($playerProtocol >= Info::PROTOCOL_120) {
+                    $this->putVarInt($this->width * $this->height);
+                }
 				$this->put($this->data);
 				break;
 			case 4:
